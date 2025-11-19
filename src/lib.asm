@@ -11,35 +11,53 @@ LF              equ 0ah
 
 .data
 
+.data
+
+; Titulo principal
 msgTitle1 db '==============================', CR, LF, '$'
-msgTitle2 db '          BLACKJACK        ', CR, LF, '$'
-msgTitle3 db '==============================', CR, LF, '$'
+msgTitle2 db '         21 BLACKJACK        ', CR, LF, '$'
+msgTitle3 db '==============================', CR, LF, CR, LF, '$'
 
+; Menu principal
+msgMenu db '   MENU PRINCIPAL', CR, LF
+        db '   --------------', CR, LF, CR, LF
+        db '   [1] Jugar una mano', CR, LF
+        db '   [2] Ver reglas', CR, LF
+        db '   [3] Salir', CR, LF, CR, LF, '$'
 
-    msgMenu db CR, LF, '=== MENU 21 BLACKJACK ===', CR, LF
-        db '1) Jugar', CR, LF
-        db '2) Reglas', CR, LF
-        db '3) Salir', CR, LF
-        db 'Opcion: $'
+; Prompt de opcion
+msgPrompt db 'Opcion: $'
 
-    msgExit     db CR, LF, 'GRACIAS POR JUGAR - 21 BLACKJACK', CR, LF, 24h
-    msgInvalid  db CR, LF, 'OPCION INVALIDA', CR, LF, 24h
+; Mensajes generales
+msgExit    db CR, LF, 'GRACIAS POR JUGAR - 21 BLACKJACK', CR, LF, 24h
+msgInvalid db CR, LF, 'OPCION INVALIDA', CR, LF, 24h
 
-    msgRulesTitle db CR, LF, '=== Reglas del Blackjack ===', CR, LF, '$'
+; Mensajes de resultado (usados por INT 60h)
+msgWin  db CR, LF, '********** GANASTE LA MANO **********', CR, LF, '$'
+msgLose db CR, LF, '********** PERDISTE LA MANO **********', CR, LF, '$'
+msgDraw db CR, LF, '**********  EMPATE **********', CR, LF, '$'
 
-    msgRules1 db '1. El jugador recibe dos cartas al inicio.', CR, LF, '$'
-    msgRules2 db '2. Las figuras valen 10 puntos.', CR, LF, '$'
-    msgRules3 db '3. El As vale 1 u 11 segun convenga.', CR, LF, '$'
-    msgRules4 db '4. El jugador gana automaticamente si obtiene 21 con sus dos primeras cartas.', CR, LF, '$'
-    msgRules5 db '5. El dealer pide cartas hasta tener 17 o mas.', CR, LF, '$'
-    msgRules6 db '6. Si ambos empatan en puntaje, es un PUSH.', CR, LF, '$'
-    msgRulesBack db CR, LF, '(Presione una tecla para volver al menu...)', CR, LF, '$'
+; Mensajes de reglas
+msgRulesTitle db CR, LF, '=== Reglas del Blackjack ===', CR, LF, '$'
+msgRules1     db '1. El jugador recibe dos cartas al inicio.', CR, LF, '$'
+msgRules2     db '2. Las figuras valen 10 puntos.', CR, LF, '$'
+msgRules3     db '3. El As vale 1 u 11 segun convenga.', CR, LF, '$'
+msgRules4     db '4. El jugador gana automaticamente si obtiene 21 con sus dos primeras cartas.', CR, LF, '$'
+msgRules5     db '5. El dealer pide cartas hasta tener 17 o mas.', CR, LF, '$'
+msgRules6     db '6. Si ambos empatan en puntaje, es un PUSH.', CR, LF, '$'
+msgRulesBack  db CR, LF, '(Presione una tecla para volver al menu...)', CR, LF, '$'
 
+; Estadisticas
+msgStatsTitle  db '   Estadisticas', CR, LF
+               db '   ------------', CR, LF, '$'
+msgStatsWins   db '   Ganadas : ', '$'
+msgStatsLosses db '   Perdidas: ', '$'
+msgStatsDraws  db '   Empates : ', '$'
 
-
-    msgWin      db CR, LF, '********** GANASTE LA MANO **********', CR, LF, '$'
-    msgLose     db CR, LF, '********** PERDISTE LA MANO **********', CR, LF, '$'
-    msgDraw     db CR, LF, '**********  EMPATE **********', CR, LF, '$'
+; Contadores de estadisticas
+winsCount   db 0
+lossCount   db 0
+drawCount   db 0
 
 
 .code 
@@ -81,31 +99,119 @@ ReadKey proc
 
 ReadKey endp
 
+; Imprime CR LF
+NewLine proc
+    mov dl, CR
+    mov ah, 02h
+    int 21h
+    mov dl, LF
+    mov ah, 02h
+    int 21h
+    ret
+NewLine endp
+; Imprime un numero en AX (0..99) en decimal
+PrintNumber8 proc
+    push ax
+    push bx
+    push dx
+
+    mov bx, 10
+    xor dx, dx
+    div bx          ; AX / 10 -> AL = decenas, DL = unidades
+
+    mov bl, al      ; decenas
+    mov bh, dl      ; unidades
+
+    cmp bl, 0
+    je PN8_only_units
+
+    ; decenas
+    mov dl, bl
+    add dl, '0'
+    mov ah, 02h
+    int 21h
+
+PN8_only_units:
+    mov dl, bh
+    add dl, '0'
+    mov ah, 02h
+    int 21h
+
+    pop dx
+    pop bx
+    pop ax
+    ret
+PrintNumber8 endp
+
+ShowStats proc
+    push ax
+    push dx
+
+    ; Titulo
+    mov dx, offset msgStatsTitle
+    call PrintString
+
+    ; Ganadas
+    mov dx, offset msgStatsWins
+    call PrintString
+    mov al, winsCount
+    xor ah, ah
+    call PrintNumber8
+    call NewLine
+
+    ; Perdidas
+    mov dx, offset msgStatsLosses
+    call PrintString
+    mov al, lossCount
+    xor ah, ah
+    call PrintNumber8
+    call NewLine
+
+    ; Empates
+    mov dx, offset msgStatsDraws
+    call PrintString
+    mov al, drawCount
+    xor ah, ah
+    call PrintNumber8
+    call NewLine
+
+    pop dx
+    pop ax
+    ret
+ShowStats endp
+
+
+
 ; ==============================
 ;       Show Menu
 ; Muestra el menu y actua segun la opcion
 ; ==============================
 ShowMenu proc
 
-    menu_loop:
+menu_loop:
 
         call ClearScreen
 
-        ; Mostrar título ASCII
+        ; Titulo
         mov dx, offset msgTitle1
         call PrintString
-
         mov dx, offset msgTitle2
         call PrintString
-
         mov dx, offset msgTitle3
         call PrintString
 
-        ;Mostramos el menu
+        ; Menu principal
         mov dx, offset msgMenu
         call PrintString
 
-        ;Leemos la opcion
+        ; Estadisticas
+        call ShowStats
+
+        ; Prompt de opcion al final de todo
+        mov dx, offset msgPrompt
+        call PrintString
+
+        ; Leer opcion
         call ReadKey
 
         cmp al, '1'
@@ -120,6 +226,7 @@ ShowMenu proc
         mov dx, offset msgInvalid
         call PrintString
         jmp menu_loop
+
 
         opcion_play:
             call StartGame
@@ -198,15 +305,19 @@ MyInt60Handler proc far
     jmp MI60_end
 
     MI60_win:
-        mov dx, offset msgWin
-        jmp MI60_print
+    inc winsCount
+    mov dx, offset msgWin
+    jmp MI60_print
 
-    MI60_lose:
-        mov dx, offset msgLose
-        jmp MI60_print
-    
-    MI60_draw:
-        mov dx, offset msgDraw
+MI60_lose:
+    inc lossCount
+    mov dx, offset msgLose
+    jmp MI60_print
+
+MI60_draw:
+    inc drawCount
+    mov dx, offset msgDraw
+
 
     MI60_print:
         mov ah, 09h
