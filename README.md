@@ -1,118 +1,190 @@
 # 🂡 Blackjack 8086 — Juego en Assembly x86
 
 ### Trabajo Práctico Final — Sistemas de Procesamiento de Datos (SPD)  
-**Grupo:** 5  
-**Lenguaje:** Assembly x86  
-**Arquitectura:** Intel 8086 
-**Ejecución:** DOS / DOSBox
+**Grupo:** 4
+**Arquitectura:** Intel 8086 (Real Mode)  
+**Lenguaje:** Assembly x86 (TASM)  
+**Entorno:** DOS / DOSBox
 
 ---
 
-## Descripción del Proyecto
+# Descripción General
 
-Implementación completa del juego **Blackjack (21)** en Assembly x86 utilizando:
+Este proyecto implementa **Blackjack (21)** completamente en **Assembly x86 (8086)**.  
+Incluye toda la lógica del juego y varias características avanzadas:
 
-- Rutinas modulares en archivos separados (`main.asm`, `game.asm`, `lib.asm`)
-- Una interrupción propia **INT 60h**
-- Shuffle real tipo *Fisher–Yates*
-- Representación visual de cartas con ASCII extendido
-- Cálculo correcto de puntajes incluyendo As (1/11)
-- Limpieza de pantalla y delays para mejor experiencia visual
+- Mazo de 52 cartas con **Shuffle Fisher–Yates real**
+- Representación de cartas en **ASCII 5×9**
+- Sistema de puntaje con As (1 u 11)
+- Menú interactivo
+- Delay visual en el turno del dealer
+- Limpieza de pantalla
+- Estadísticas durante la sesión
+- Instrucciones del juego
+- Interrupción personalizada **INT 60h**
+- Arquitectura modular con 3 archivos ASM
+
+Cumple ampliamente los requisitos del TP final.
 
 ---
 
-## Estructura del Proyecto
+# Estructura del Proyecto
 
 ```
 blackjack-8086/
 │
 ├── src/
-│   ├── main.asm
-│   ├── lib.asm
-│   ├── game.asm
+│   ├── main.asm      ; Punto de entrada principal
+│   ├── lib.asm       ; Funciones: impresión, lectura, interrupción, pantalla
+│   └── game.asm      ; Lógica del Blackjack (cartas, puntajes, turnos)
+│   
 │
-├── build.bat
-├── .gitignore
+├── build.bat         ; Script para compilar blackjack.exe
 └── README.md
 ```
 
 ---
 
-## Requisitos
+# Funcionalidades del Juego
 
-- **TASM 3.0**
-- **TLINK**
-- **DOS o DOSBox**
-- Windows / Linux / MacOS con DOSBox
+## Cartas ASCII 5×9
+
+Las cartas se muestran así:
+
+```
+┌─────────┐
+│ A       │
+│         │
+│    ♥    │
+│         │
+│       A │
+└─────────┘
+```
+
+Incluye números, J, Q, K y As.  
+Pueden aparecer ♥ ♦ ♣ ♠ según corresponda.
 
 ---
 
-## Compilación
+# Mezcla con Fisher–Yates
 
-Ejecutar en DOSBox:
-
-```
-build
-```
-
-Esto genera:
+Antes de cada partida, el mazo se mezcla correctamente usando el algoritmo:
 
 ```
-blackjack.exe
-```
-
----
-
-## Ejecución
-
-```
-blackjack.exe
-```
-
----
-
-## Funcionamiento del Juego
-
-- Mazo barajado con Fisher–Yates  
-- Turno del jugador:  
-  - **H** → Pedir carta  
-  - **S** → Plantarse  
-- Dealer roba hasta tener 17+
-- Limpieza de pantalla entre acciones
-- Impresión de cartas estilo:
-
-```
-[A ♥]
-[10 ♦]
-[J ♣]
+for i = 51 down to 1:
+    j = random(0..i)
+    swap(deck[i], deck[j])
 ```
 
 ---
 
-## Interrupción Personalizada — INT 60h
+# Puntaje del Blackjack
 
-Se utiliza para mostrar:
-
-- Victoria del jugador  
-- Victoria del dealer  
-- Empate  
-
-Valores:  
-- **AH = 0** → Jugador gana  
-- **AH = 1** → Dealer gana  
-- **AH = 2** → Empate  
-
----
-
-## Sistema de Puntaje
-
-- 2–10 → Valor natural  
+- 2–10 → valor normal  
 - J, Q, K → 10  
-- A → 11 o 1 (ajustable si el jugador se pasa de 21)  
+- As → 11 o 1 según convenga  
+- Si el puntaje pasa 21 y hay As, se convierten a 1 automáticamente  
+
+Ejemplo real:
+
+```
+A 7 5 8 → 21
+```
 
 ---
 
-## Limpieza y Delay
+# Turno del Jugador
 
-- `ClearScreen` → Limpia la pantalla con INT 10h  
-- `DelayShort` → Pausa mediante doble loop  
+- Pedir carta (H)
+- Plantarse (S)
+- Cartas mostradas en grande
+- Upcard del dealer visible
+
+---
+
+# Turno del Dealer
+
+- Roba hasta llegar a 17 o más
+- Muestra cada carta con un delay visual
+- Limpia pantalla entre acciones para una experiencia agradable
+
+---
+
+# Delay Visual
+
+Implementado por un doble loop en ASM para lograr animación simulada.
+
+---
+
+# Estadísticas
+
+Durante la sesión completa se contabilizan:
+
+- Victorias
+- Derrotas
+- Empates
+
+Mostradas en el menú de juego.
+
+---
+
+# Interrupción Personalizada — INT 60h
+
+El handler implementado permite:
+
+- Mostrar mensaje de victoria
+- Mostrar mensaje de derrota
+- Mostrar mensaje de empate
+
+Ejemplo de uso:
+
+```asm
+mov ah, 0   ; Ganó el jugador
+int 60h
+```
+
+### Instalación en `main.asm`
+```asm
+call InstallInt60
+```
+
+### Handler en `lib.asm`
+Se encarga de imprimir el mensaje correspondiente.
+
+---
+
+# Limpieza de Pantalla (ClearScreen)
+
+Basada en:
+
+```
+INT 10h — Scroll Up Window
+```
+
+Borra completamente el área visible sin parpadeos.
+
+---
+
+# Compilación del Juego
+
+Ejecutar:
+
+```
+build.bat
+```
+
+Genera:
+
+```
+blackjack.exe
+```
+
+---
+
+# Ejecución del Juego
+
+En DOSBox:
+
+```
+blackjack
+```
