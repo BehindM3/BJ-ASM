@@ -16,7 +16,7 @@ MAX_CARDS       equ 12
     msgStart    db CR, LF, 'Iniciando partida...', CR, LF, '$'
     msgPause    db CR, LF, '(Presione una tecla para volver al menu...)', CR, LF, '$'
 
-    msgPlayer   db CR, LF, 'Jugador: ', CR, LF, '$'
+    msgPlayer   db 'Jugador: ', '$'
     msgDealer   db CR, LF, 'Dealer: ', CR, LF, '$'
 
     msgPlayerSc     db CR, LF, 'Puntaje jugador: ', '$'
@@ -28,7 +28,7 @@ MAX_CARDS       equ 12
     msgTurnDealer db CR, LF, '--- Turno del dealer  ---', CR, LF, '$'
 
     msgAskAction  db CR, LF, 'H) Pedir carta [HIT]  S) Plantarse [STAND] ', CR, LF, '$'
-    msgInvalidAct db CR, LF, 'Opcion invalida. Intente de nuevo.', CR, LF, '$'
+    msgInvalidAct db CR, LF, 'Opcion inválida. Intente de nuevo.', CR, LF, '$'
 
     msgPlayerBust db CR, LF, 'Te pasaste de 21. Perdiste.', CR, LF, '$'
     msgDealerBust db CR, LF, 'El dealer se paso de 21. Ganaste!', CR, LF, '$'
@@ -177,7 +177,7 @@ MAX_CARDS       equ 12
 
     ; ===============================================================
     ;           Deal Card To Player
-    ; Toma la carta deck[deckPos] y la agrega a palyer[playerCount]
+    ; Toma la carta deck[deckPos] y la agrega a player[playerCount]
     ; ===============================================================
     DealCardToPlayer proc
 
@@ -263,7 +263,7 @@ MAX_CARDS       equ 12
     ; =========================================
     ; GetSuit:  suit = carta / 13
     ; E:        AL = carta (0, 1, 2, ..., 51)
-    ; S:        AL = suit  (0, 1, 2, ..., 12)
+    ; S:        AL = suit  (0, 1, 2, 3)
     ; =========================================
     GetSuit proc
 
@@ -372,43 +372,190 @@ MAX_CARDS       equ 12
 
     PrintRank endp
 
-    ; =========================================
-    ;               Print Card
-    ; E:        AL = card  (0, ... , 51)
-    ; =========================================
+    CRLF proc 
+
+    mov dl, 13 
+    mov ah, 02h 
+    int 21h 
+    mov dl, 10 
+    mov ah, 02h 
+    int 21h 
+    ret 
+    
+    CRLF endp
+    ; ===============================================================
+    ; PrintCard (Estilo 5x9 simétrica)
+    ; AL = card (0..51)
+    ; ===============================================================
     PrintCard proc
+        push ax
+        push bx
+        push cx
+        push dx
 
-        ; Guardamos la carta original
-        push ax 
+        ; Guardar carta original
+        mov bl, al     ; BL = card
 
-        ; Imprimimos '['
-        mov dl, '['
+        ; Obtener rank
+        push ax
+        mov al, bl
+        call GetRank   ; AL = rank
+        mov bh, al     ; BH = rank
+        pop ax
+
+        ; Obtener suit
+        push ax
+        mov al, bl
+        call GetSuit   ; AL = suit
+        mov bl, al     ; BL = suit
+        pop ax
+
+    ; ---------------------------------------------------------------
+    ; Línea 1: ╔═══════╗
+    ; ---------------------------------------------------------------
+        call CRLF
+        mov dl, 201        ; ╔
         mov ah, 02h
         int 21h
 
-        ; Imprimimos 'Rank' = Valor
-        pop ax
-        push ax
-        call GetRank
-        call PrintRank
+        mov cx, 7
+    pc_top_loop:
+        mov dl, 205        ; ═
+        int 21h
+        loop pc_top_loop
 
+        mov dl, 187        ; ╗
+        int 21h
+        call CRLF
+
+    ; ---------------------------------------------------------------
+    ; Línea 2: ║A      ║
+    ; ---------------------------------------------------------------
+        mov dl, 186        ; ║
+        int 21h
+
+        ; rank izquierda
+        mov al, bh
+        cmp al, 9          ;rank 9 = card 10
+        je print_10_izq
+        call PrintRank
+        jmp siga
+
+        ; excepción 10 izquierda
+    print_10_izq:
+        call PrintRank
+        mov cx, 5           ; espacios (5)
+    loop_10:
         mov dl, ' '
         mov ah, 02h
         int 21h
+        loop loop_10
+        jmp end_l2
 
-        ; Imprimimos 'Suit' = Palo
-        pop ax
-        call GetSuit
-        call PrintSuit
+    siga:
+        ; espacios (6)
+        mov cx, 6
+    pc_l2_sp:
+        mov dl, ' '
+        int 21h
+        loop pc_l2_sp
 
-        ; Imprimimos ']'
-        mov dl, ']'
-        mov ah, 02h
+    end_l2:
+        mov dl, 186        ; ║
+        int 21h
+        call CRLF
+
+    ; ---------------------------------------------------------------
+    ; Línea 3: ║   ♠   ║
+    ; ---------------------------------------------------------------
+        mov dl, 186        ; ║
         int 21h
 
-        ret
+        ; 3 espacios
+        mov cx, 3
+    pc_l3_sp1:
+        mov dl, ' '
+        int 21h
+        loop pc_l3_sp1
 
+        ; suit centrado
+        mov al, bl
+        call PrintSuit
+
+        ; 3 espacios
+        mov cx, 3
+    pc_l3_sp2:
+        mov dl, ' '
+        int 21h
+        loop pc_l3_sp2
+
+        mov dl, 186       ; ║
+        int 21h
+        call CRLF
+
+    ; ---------------------------------------------------------------
+    ; Línea 4: ║      A║
+    ; ---------------------------------------------------------------
+        mov dl, 186      ; ║
+        int 21h
+        
+        ;excepcion 10 derecha
+        mov al, bh
+        cmp al, 9          ;rank 9 = card 10
+        je print_10_der
+        jmp siga2
+
+        print_10_der:
+        mov cx, 5           ; espacios (5)
+    loop_10_der:
+        mov dl, ' '
+        mov ah, 02h
+        int 21h
+        loop loop_10_der
+        jmp rnk_der
+
+        siga2:
+        ; 6 espacios
+        mov cx, 6
+    pc_l4_sp:
+        mov dl, ' '
+        int 21h
+        loop pc_l4_sp
+
+        ; rank derecha
+        rnk_der:
+        mov al, bh
+        call PrintRank
+
+        end_l4:
+        mov dl, 186
+        int 21h
+        call CRLF
+
+    ; ---------------------------------------------------------------
+    ; Línea 5: ╚═══════╝
+    ; ---------------------------------------------------------------
+        mov dl, 200        ; ╚
+        int 21h
+
+        mov cx, 7
+    pc_bot_loop:
+        mov dl, 205        ; ═
+        int 21h
+        loop pc_bot_loop
+
+        mov dl, 188        ; ╝
+        int 21h
+;        call CRLF
+
+    ; restore
+        pop dx
+        pop cx
+        pop bx
+        pop ax
+        ret
     PrintCard endp
+
 
     ; =========================================
     ;               Show Hand
@@ -425,21 +572,21 @@ MAX_CARDS       equ 12
             call PrintCard
 
             ; Espacio entre cartas 
-            mov dl, ' '
-            mov ah, 02h
-            int 21h
+;            mov dl, ' '
+ ;           mov ah, 02h
+  ;          int 21h
 
             inc si
             loop sh_loop
 
         sh_end:
 
-            mov dl, CR
-            mov ah, 02h
-            int 21h
-            mov dl, LF
-            mov ah, 02h
-            int 21h
+ ;           mov dl, CR
+  ;          mov ah, 02h
+   ;         int 21h
+    ;        mov dl, LF
+     ;       mov ah, 02h
+      ;      int 21h
 
         ret
 
@@ -590,6 +737,13 @@ MAX_CARDS       equ 12
             ; Mostramos mano del jugador
             mov dx, offset msgPlayer
             call PrintString
+            ; Salto de linea
+ ;           mov dl, CR
+  ;          mov ah, 02h
+   ;         int 21h
+    ;        mov dl, LF
+     ;       mov ah, 02h
+      ;      int 21h
 
             mov si, offset playerHand
             mov al, byte ptr playerCount
@@ -603,13 +757,14 @@ MAX_CARDS       equ 12
             mov ax, playerScore
             call PrintNumber
 
+
             ; Salto de linea
-            mov dl, CR
-            mov ah, 02h
-            int 21h
-            mov dl, LF
-            mov ah, 02h
-            int 21h
+ ;           mov dl, CR
+  ;          mov ah, 02h
+   ;         int 21h
+    ;        mov dl, LF
+     ;       mov ah, 02h
+      ;      int 21h
 
             ; Mostramos solo la UpCard del dealer
             call ShowDealerUpcard
@@ -617,7 +772,9 @@ MAX_CARDS       equ 12
             ; Evaluamos si se paso de 21
             mov ax, playerScore
             cmp ax, 21 
-            jle PT_not_bust
+            jl PT_not_bust
+            cmp ax, 21
+            je PT_stand
 
             mov dx, offset msgPlayerBust
             call PrintString

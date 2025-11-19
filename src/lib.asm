@@ -10,13 +10,32 @@ CR              equ 0dh
 LF              equ 0ah
 
 .data
+
+msgTitle1 db '==============================', CR, LF, '$'
+msgTitle2 db '          BLACKJACK        ', CR, LF, '$'
+msgTitle3 db '==============================', CR, LF, '$'
+
+
     msgMenu db CR, LF, '=== MENU 21 BLACKJACK ===', CR, LF
-            db '1) Jugar', CR, LF
-            db '2) Salir', CR, LF
-            db 'Opcion: $'
+        db '1) Jugar', CR, LF
+        db '2) Reglas', CR, LF
+        db '3) Salir', CR, LF
+        db 'Opcion: $'
 
     msgExit     db CR, LF, 'GRACIAS POR JUGAR - 21 BLACKJACK', CR, LF, 24h
     msgInvalid  db CR, LF, 'OPCION INVALIDA', CR, LF, 24h
+
+    msgRulesTitle db CR, LF, '=== Reglas del Blackjack ===', CR, LF, '$'
+
+    msgRules1 db '1. El jugador recibe dos cartas al inicio.', CR, LF, '$'
+    msgRules2 db '2. Las figuras valen 10 puntos.', CR, LF, '$'
+    msgRules3 db '3. El As vale 1 u 11 segun convenga.', CR, LF, '$'
+    msgRules4 db '4. El jugador gana automaticamente si obtiene 21 con sus dos primeras cartas.', CR, LF, '$'
+    msgRules5 db '5. El dealer pide cartas hasta tener 17 o mas.', CR, LF, '$'
+    msgRules6 db '6. Si ambos empatan en puntaje, es un PUSH.', CR, LF, '$'
+    msgRulesBack db CR, LF, '(Presione una tecla para volver al menu...)', CR, LF, '$'
+
+
 
     msgWin      db CR, LF, '********** GANASTE LA MANO **********', CR, LF, '$'
     msgLose     db CR, LF, '********** PERDISTE LA MANO **********', CR, LF, '$'
@@ -72,6 +91,16 @@ ShowMenu proc
 
         call ClearScreen
 
+        ; Mostrar título ASCII
+        mov dx, offset msgTitle1
+        call PrintString
+
+        mov dx, offset msgTitle2
+        call PrintString
+
+        mov dx, offset msgTitle3
+        call PrintString
+
         ;Mostramos el menu
         mov dx, offset msgMenu
         call PrintString
@@ -83,6 +112,9 @@ ShowMenu proc
         je opcion_play
 
         cmp al, '2'
+        je opcion_rules
+
+        cmp al, '3'
         je opcion_exit
 
         mov dx, offset msgInvalid
@@ -93,6 +125,37 @@ ShowMenu proc
             call StartGame
             jmp menu_loop
         
+        opcion_rules:
+        call ClearScreen
+
+        mov dx, offset msgRulesTitle
+        call PrintString
+
+        mov dx, offset msgRules1
+        call PrintString
+
+        mov dx, offset msgRules2
+        call PrintString
+
+        mov dx, offset msgRules3
+        call PrintString
+
+        mov dx, offset msgRules4
+        call PrintString
+
+        mov dx, offset msgRules5
+        call PrintString
+
+        mov dx, offset msgRules6
+        call PrintString
+
+        mov dx, offset msgRulesBack
+        call PrintString
+
+        call ReadKey
+        jmp menu_loop
+
+
         opcion_exit:
             call ClearScreen
             mov dx, offset msgExit
