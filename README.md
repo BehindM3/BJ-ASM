@@ -1,7 +1,7 @@
 # 🂡 Blackjack 8086 — Juego en Assembly x86
 
 ### Trabajo Práctico Final — Sistemas de Procesamiento de Datos (SPD)  
-**Grupo:** 4
+**Grupo:** 5
 **Arquitectura:** Intel 8086 (Real Mode)  
 **Lenguaje:** Assembly x86 (TASM)  
 **Entorno:** DOS / DOSBox

@@ -305,18 +305,18 @@ MyInt60Handler proc far
     jmp MI60_end
 
     MI60_win:
-    inc winsCount
-    mov dx, offset msgWin
-    jmp MI60_print
+        inc winsCount
+        mov dx, offset msgWin
+        jmp MI60_print
 
-MI60_lose:
-    inc lossCount
-    mov dx, offset msgLose
-    jmp MI60_print
+    MI60_lose:
+        inc lossCount
+        mov dx, offset msgLose
+        jmp MI60_print
 
-MI60_draw:
-    inc drawCount
-    mov dx, offset msgDraw
+    MI60_draw:
+        inc drawCount
+        mov dx, offset msgDraw
 
 
     MI60_print:
@@ -400,7 +400,7 @@ DelayShort proc
     push cx
     push dx
 
-    mov cx, 9000       ; Valor del delay
+    mov cx, 9000       
 
     DS_outer:
         mov dx, 8000
